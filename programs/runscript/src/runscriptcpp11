@@ -1,0 +1,28 @@
+#!/bin/bash
+myname_tag="scriptcpp11 script wrapper:"
+tmp_dir="$(mktemp -d --tmpdir -- cppXXXXXXXXXX)"
+tmp_cpp="${tmp_dir}/source.cpp"
+tmp_bin="${tmp_dir}/program.bin"
+org_cpp=$1; 
+
+#echo $tmp_dir
+if [[ ! -d "${tmp_dir}" ]] ; then echo "Failed to create temporary $tmp_dir" ; exit 1 ; fi
+
+function cleanup_code {
+	#echo "Would delete $tmp_dir"
+	rm -rf "$tmp_dir"
+	exit
+}
+
+trap "cleanup_code" EXIT
+
+tail -n +2 "$org_cpp" > "$tmp_cpp" || { echo "Can not prepare source code $tmp_cpp from $org_cpp" ; exit 1 ; }
+
+g++ --std=c++11 -Wall "$tmp_cpp" -o "$tmp_bin" || { echo "$myname_tag Compilation error in script $org_cpp" ; exit 1 ; }
+
+shift 
+
+"$tmp_bin" "$@" ; exitcode=$? ; 
+
+exit $exitcode 
+
