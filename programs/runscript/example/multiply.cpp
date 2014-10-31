@@ -1,5 +1,4 @@
-#!/bin/bash runscriptcpp11
-
+#!/usr/bin/env runscriptcpp11
 #include <iostream>
 #include <vector>
 
