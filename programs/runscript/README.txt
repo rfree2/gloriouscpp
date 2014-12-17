@@ -1,7 +1,16 @@
 
-The runscript is a tiny program/wrapper that allows to run simple C++ programs directly from source without manual compilation.
+The runscript is a tiny program/wrapper that allows to run simple C++ programs as script (from source without manual compilation)
 
-Once done, you can directly execute C++ source code by entering directory example/ and doing: ./multiply.cpp 3.14 2
+Once installed (see below), you can directly execute C++ source code by entering directory example/ and doing: ./multiply.cpp 3.14 2
+
+=== INSTALL ===
+
+To configure your system (or just current user) to execute these C++ scripts:
+Run install-root.sh to install as root, or install-user.sh to install as current user in your home.
+
+=== BUILD ===
+
+No building (it's a bash script) just run the installer.
 
 === HOOK ===
 
@@ -16,14 +25,5 @@ to have a syntax error if they would be compiled
 
 Currently we support 1a and 1b.
 TODO method 2.
-
-
-=== BUILD ===
-
-No building, it's a bash script.
-
-=== INSTALL ===
-
-Run install-root.sh to install as root, or install-user.sh to install as current user in your home.
 
 
