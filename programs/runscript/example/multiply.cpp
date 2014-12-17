@@ -1,27 +1,25 @@
 #!/usr/bin/env runscriptcpp11
 #include <iostream>
+#include <string>
 #include <vector>
+#include <stdexcept>
+using std::cout; using std::cin; using std::cerr; using std::endl; using std::vector; using std::string;
+
+void Usage() {
+	cout << "Call this program/script with two numbers." << endl;
+}
 
 int main(int argc, const char **argv) {
-	std::vector<std::string> args_make;
-	for (int i=1; i<argc; ++i) args_make.push_back(argv[i]);
-	const std::vector<std::string> args(args_make);
-	const std::string prog_name(argv[0]);
+	if (!(argc>=1)) throw std::out_of_range("Program called without name?!");
+	vector<string> args_make(argv+1, argv+argc);
+	const vector<string> args(args_make);
+	const string prog_name(argv[0]);
+	cout << "Hi! This is script running in program " << prog_name << endl;
 
-	std::cout << "Hi! This is script running in program " << prog_name << ". ";
-
-	auto x = std::stold(args.at(0));
-	auto y = std::stold(args.at(1));
-	std::cout << x << "*" << y << " = " << (x*y) << std::endl;
-
-	std::cout << "TEXT to COUT" << std::endl;
-	std::cerr << "TEXT to CERR" << std::endl;
-
-	if ((x==0) && (y==0)) {
-		int a=1,b=1;
-		std::cout << "A test: enter two integers please separated by space or enter: ";
-		std::cin >> a >> b;
-		std::cout << a << " * " << b << " = " << (a*b) << std::endl;
-	}
+	try {
+		auto x = std::stold(args.at(0)), y = std::stold(args.at(1));
+		cout << x << "*" << y << " = " << (x*y) << endl;
+	} catch(...) { Usage(); }
+	cerr << "TEXT to CERR" << endl;
 }
 
