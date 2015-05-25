@@ -41,8 +41,8 @@
 #endif
 
 
-namespace nOT {
-namespace nUtils {
+namespace glor {
+namespace system {
 
 INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1 // <=== namespaces
 
@@ -843,5 +843,5 @@ std::string GetObjectName() {
 
 // ====================================================================
 
-nOT::nUtils::cLogger gCurrentLogger;
+glor::system::cLogger gCurrentLogger;
 

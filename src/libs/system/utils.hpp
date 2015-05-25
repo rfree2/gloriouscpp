@@ -40,9 +40,9 @@
 #include <sstream>
 #include <algorithm> // replace
 
-namespace nOT {
+namespace glor {
 
-namespace nUtils {
+namespace system {
 
 /// @brief general based for my runtime errors
 class myexception : public std::runtime_error {
@@ -99,18 +99,18 @@ std::atomic<int> & gLoggerGuardDepth_Get(); // getter for the global singleton o
 	_dbg_dbg("WRITE DEBUG: LEVEL="<<LEVEL<<" VAR: " << VAR ); \
 	auto level=LEVEL; short int part=0; \
 	try { \
-		std::lock_guard<std::recursive_mutex> mutex_guard( nOT::nUtils::gLoggerGuard ); \
+		std::lock_guard<std::recursive_mutex> mutex_guard( glor::system::gLoggerGuard ); \
 		part=1; \
 		try { \
-			++nOT::nUtils::gLoggerGuardDepth_Get(); \
-			/* int counter = nOT::nUtils::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
-			gCurrentLogger.write_stream(LEVEL,"") << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline()  << nOT::nUtils::cLoggerCommit() ; \
+			++glor::system::gLoggerGuardDepth_Get(); \
+			/* int counter = glor::system::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
+			gCurrentLogger.write_stream(LEVEL,"") << glor::system::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline()  << glor::system::cLoggerCommit() ; \
 			part=9; \
 		} catch(...) { \
-			gCurrentLogger.write_stream(std::max(level,90),"") << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
-			--nOT::nUtils::gLoggerGuardDepth_Get(); throw ; \
+			gCurrentLogger.write_stream(std::max(level,90),"") << glor::system::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
+			--glor::system::gLoggerGuardDepth_Get(); throw ; \
 		} \
-		--nOT::nUtils::gLoggerGuardDepth_Get(); \
+		--glor::system::gLoggerGuardDepth_Get(); \
 	} catch(...) { if (part<8) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: problem in debug mechanism e.g. in locking." <<gCurrentLogger.endline();   throw ; } \
 	} } while(0)
 
@@ -119,24 +119,24 @@ std::atomic<int> & gLoggerGuardDepth_Get(); // getter for the global singleton o
 	_dbg_dbg("WRITE DEBUG: LEVEL="<<LEVEL<<" CHANNEL="<<CHANNEL<<" VAR: " << VAR ); \
 	auto level=LEVEL; short int part=0; \
 	try { \
-		std::lock_guard<std::recursive_mutex> mutex_guard( nOT::nUtils::gLoggerGuard ); \
+		std::lock_guard<std::recursive_mutex> mutex_guard( glor::system::gLoggerGuard ); \
 		part=1; \
 		try { \
-			++nOT::nUtils::gLoggerGuardDepth_Get(); \
+			++glor::system::gLoggerGuardDepth_Get(); \
 			std::ostringstream oss; \
-			oss << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline() << std::flush; \
+			oss << glor::system::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline() << std::flush; \
 			std::string as_string = oss.str(); \
 			_dbg_dbg("START will write to log LEVEL="<<LEVEL<<" to CHANNEL="<<CHANNEL<<" as_string="<<as_string); \
-/* int counter = nOT::nUtils::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
-			gCurrentLogger.write_stream(LEVEL,""     ) << as_string << gCurrentLogger.endline() << nOT::nUtils::cLoggerCommit() ; \
-			gCurrentLogger.write_stream(LEVEL,CHANNEL) << as_string << gCurrentLogger.endline() << nOT::nUtils::cLoggerCommit() ; \
+/* int counter = glor::system::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
+			gCurrentLogger.write_stream(LEVEL,""     ) << as_string << gCurrentLogger.endline() << glor::system::cLoggerCommit() ; \
+			gCurrentLogger.write_stream(LEVEL,CHANNEL) << as_string << gCurrentLogger.endline() << glor::system::cLoggerCommit() ; \
 			_dbg_dbg("DONE will write to log LEVEL="<<LEVEL<<" to CHANNEL="<<CHANNEL<<" as_string="<<as_string); \
 			part=9; \
 		} catch(...) { \
-			gCurrentLogger.write_stream(std::max(level,90),CHANNEL) << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
-			--nOT::nUtils::gLoggerGuardDepth_Get(); throw ; \
+			gCurrentLogger.write_stream(std::max(level,90),CHANNEL) << glor::system::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
+			--glor::system::gLoggerGuardDepth_Get(); throw ; \
 		} \
-		--nOT::nUtils::gLoggerGuardDepth_Get(); \
+		--glor::system::gLoggerGuardDepth_Get(); \
 	} catch(...) { if (part<8) gCurrentLogger.write_stream(100,CHANNEL)<<"DEBUG-ERROR: problem in debug mechanism e.g. in locking." <<gCurrentLogger.endline();   throw ; } \
 	} } while(0)
 
@@ -151,35 +151,35 @@ extern const int _debug_level_nr_mark;
 extern const int _debug_level_nr_warn;
 extern const int _debug_level_nr_erro;
 
-#define _dbg3(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg3,VAR) // details - most detailed
-#define _dbg2(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg2,VAR) // details - a bit more important
-#define _dbg1(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg1,VAR) // details - more important
-#define _info(VAR) _debug_level( nOT::nUtils::_debug_level_nr_info,VAR) // information
-#define _note(VAR) _debug_level( nOT::nUtils::_debug_level_nr_note,VAR) // more interesting information
-#define _fact(VAR) _debug_level( nOT::nUtils::_debug_level_nr_fact,VAR) // interesting events that could be interesting even for user, for logical/business things
-#define _mark(VAR) _debug_level( nOT::nUtils::_debug_level_nr_mark,VAR) // marked actions
-#define _warn(VAR) _debug_level( nOT::nUtils::_debug_level_nr_warn,VAR) // some problems
-#define _erro(VAR) _debug_level( nOT::nUtils::_debug_level_nr_erro,VAR) // errors
+#define _dbg3(VAR) _debug_level( glor::system::_debug_level_nr_dbg3,VAR) // details - most detailed
+#define _dbg2(VAR) _debug_level( glor::system::_debug_level_nr_dbg2,VAR) // details - a bit more important
+#define _dbg1(VAR) _debug_level( glor::system::_debug_level_nr_dbg1,VAR) // details - more important
+#define _info(VAR) _debug_level( glor::system::_debug_level_nr_info,VAR) // information
+#define _note(VAR) _debug_level( glor::system::_debug_level_nr_note,VAR) // more interesting information
+#define _fact(VAR) _debug_level( glor::system::_debug_level_nr_fact,VAR) // interesting events that could be interesting even for user, for logical/business things
+#define _mark(VAR) _debug_level( glor::system::_debug_level_nr_mark,VAR) // marked actions
+#define _warn(VAR) _debug_level( glor::system::_debug_level_nr_warn,VAR) // some problems
+#define _erro(VAR) _debug_level( glor::system::_debug_level_nr_erro,VAR) // errors
 
-#define _dbg3_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg3, VAR) // details - most detailed
-#define _dbg2_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg2, VAR) // details - a bit more important
-#define _dbg1_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg1, VAR) // details - more important
-#define _info_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_info, VAR) // information
-#define _note_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_note, VAR) // more interesting information
-#define _fact_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_fact, VAR) // interesting events that could be interesting even for user, for logical/business things
-#define _mark_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_mark, VAR) // marked actions
-#define _warn_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_warn, VAR) // some problems
-#define _erro_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_erro, VAR) // errors
+#define _dbg3_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_dbg3, VAR) // details - most detailed
+#define _dbg2_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_dbg2, VAR) // details - a bit more important
+#define _dbg1_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_dbg1, VAR) // details - more important
+#define _info_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_info, VAR) // information
+#define _note_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_note, VAR) // more interesting information
+#define _fact_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_fact, VAR) // interesting events that could be interesting even for user, for logical/business things
+#define _mark_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_mark, VAR) // marked actions
+#define _warn_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_warn, VAR) // some problems
+#define _erro_c(C,VAR) _debug_level_c(C, glor::system::_debug_level_nr_erro, VAR) // errors
 
 // lock // because of VAR
 #define _scope_debug_level_c(CHANNEL,LEVEL,VAR) \
 	std::ostringstream debug_detail_oss; \
-	nOT::nUtils::gLoggerGuard.lock(); \
+	glor::system::gLoggerGuard.lock(); \
 	debug_detail_oss << OT_CODE_STAMP << ' ' << VAR ; \
-	nOT::nUtils::nDetail::cDebugScopeGuard debugScopeGuard; \
+	glor::system::nDetail::cDebugScopeGuard debugScopeGuard; \
 	if (_dbg_ignore<LEVEL) debugScopeGuard.Assign(CHANNEL,LEVEL, debug_detail_oss.str()); \
 	if (_dbg_ignore<LEVEL) _debug_level_c(CHANNEL,LEVEL,debug_detail_oss.str() + " ... begin"); \
-	nOT::nUtils::gLoggerGuard.unlock();
+	glor::system::gLoggerGuard.unlock();
 #define _scope_debug_level(LEVEL,VAR) _scope_debug_level_c("",LEVEL,VAR)
 
 #define _scope_dbg1(VAR) _scope_debug_level( _debug_level_nr_dbg3, VAR)
@@ -386,7 +386,7 @@ std::string DbgMap(const map<T, T2> & map) {
 
 // ASRT - assert. Name like ASSERT() was too long, and ASS() was just... no.
 // Use it like this: ASRT( x>y );  with the semicolon at end, a clever trick forces this syntax :)
-#define ASRT(x) do { if (!(x)) nOT::nUtils::Assert(false, OT_CODE_STAMP, #x); } while(0)
+#define ASRT(x) do { if (!(x)) glor::system::Assert(false, OT_CODE_STAMP, #x); } while(0)
 
 void Assert(bool result, const std::string &stamp, const std::string &condition);
 
@@ -528,7 +528,7 @@ class cLoggerStreamCerr : public cLoggerStream {
 };
 // ====================================================================
 
-namespace nOper { // nOT::nUtils::nOper
+namespace nOper { // glor::system::nOper
 // cool shortcut operators, like vector + vecotr operator working same as string (appending)
 // isolated to namespace because it's unorthodox ide to implement this
 
@@ -572,7 +572,7 @@ map<TK,TV> operator+(const map<TK,TV> &a, const map<TK,TV> &b) {
 }
 
 
-} // nOT::nUtils::nOper
+} // glor::system::nOper
 
 // ====================================================================
 
@@ -605,13 +605,13 @@ class value_init {
 template <class T, T INIT>
 value_init<T, INIT>::value_init() :	data(INIT) { }
 
-} // namespace nUtils
+} // namespace system
 
-} // namespace nOT
+} // namespace glor
 
 
 // global namespace
-extern nOT::nUtils::cLogger gCurrentLogger; ///< The current main logger. Usually do not use it directly, instead use macros like _dbg1 etc
+extern glor::system::cLogger gCurrentLogger; ///< The current main logger. Usually do not use it directly, instead use macros like _dbg1 etc
 
 std::string GetObjectName(); ///< Method to return name of current object; To use in debug; Can be shadowed in your classes. (Might be not used currently)
 
@@ -619,7 +619,7 @@ const extern int _dbg_ignore; ///< the global _dbg_ignore, but local code (block
 // to override debug compile-time setting for given block/class, e.g. to disable debug in one of your methods or increase it there.
 // Or to make it runtime by providing a class normal member and editing it in runtime
 
-#define OT_CODE_STAMP ( nOT::nUtils::ToStr("[") + nOT::nUtils::nDetail::DbgShortenCodeFileName(__FILE__) + nOT::nUtils::ToStr("+") + nOT::nUtils::ToStr(__LINE__) + nOT::nUtils::ToStr(" ") + (GetObjectName()) + nOT::nUtils::ToStr("::") + nOT::nUtils::ToStr(__FUNCTION__) + nOT::nUtils::ToStr("]"))
+#define OT_CODE_STAMP ( glor::system::ToStr("[") + glor::system::nDetail::DbgShortenCodeFileName(__FILE__) + glor::system::ToStr("+") + glor::system::ToStr(__LINE__) + glor::system::ToStr(" ") + (GetObjectName()) + glor::system::ToStr("::") + glor::system::ToStr(__FUNCTION__) + glor::system::ToStr("]"))
 
 
 
