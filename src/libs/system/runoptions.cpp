@@ -5,7 +5,7 @@
 
 #include "lib_common1.hpp"
 
-namespace nOT {
+namespace glor {
 
 INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1 // <=== namespaces
 

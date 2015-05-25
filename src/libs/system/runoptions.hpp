@@ -8,7 +8,7 @@ Template for new files, replace word "template" and later delete this line here.
 
 #include "lib_common1.hpp"
 
-namespace nOT {
+namespace glor {
 
 INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1 // <=== namespaces
 
@@ -50,7 +50,7 @@ class cRunOptions {
 extern cRunOptions gRunOptions;
 
 
-} // namespace nOT
+} // namespace glor
 
 
 

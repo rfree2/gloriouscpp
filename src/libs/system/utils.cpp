@@ -764,7 +764,7 @@ void  cEnvUtils::OpenEditor() {
 	else
 		command = "/usr/bin/editor " + mFilename;
 	_dbg3("Opening editor with command: " << command);
-	if ( system( command.c_str() ) == -1 )
+	if ( std::system( command.c_str() ) == -1 )
 		_erro("Cannot execute system command: " << command);
 }
 
