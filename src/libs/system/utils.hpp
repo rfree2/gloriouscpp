@@ -13,13 +13,32 @@
 	#include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+    #include"windows_stream.h"
+#endif
+
 #ifndef CFG_WITH_TERMCOLORS
-	#error "You requested to turn off terminal colors (CFG_WITH_TERMCOLORS), however currently they are hardcoded (this option to turn them off is not yet implemented)."
+	//#error "You requested to turn off terminal colors (CFG_WITH_TERMCOLORS), however currently they are hardcoded (this option to turn them off is not yet implemented)."
 #endif
 
 ///Macros related to automatic deduction of class name etc; 
 #define MAKE_CLASS_NAME(NAME) private: static std::string GetObjectName() { return #NAME; }
 #define MAKE_STRUCT_NAME(NAME) private: static std::string GetObjectName() { return #NAME; } public:
+
+// define this to debug the debug system itself:
+// #define opt_debug_debug
+
+#ifdef opt_debug_debug
+	#define _dbg_dbg(X) do { std::cerr<<"_dbg_dbg: " << OT_CODE_STAMP << " {thread=" << std::this_thread::get_id()<<"} " \
+	<< " {pid="<<getpid()<<"} " <<  ": " << X << std::endl; } while(0)
+#else
+	#define _dbg_dbg(X) do { } while(0)
+#endif
+
+#define MAIN_QUEUE_NAME "bitmonero_log_rotate_main_queue"
+#include <boost/interprocess/ipc/message_queue.hpp>
+#include <sstream>
+#include <algorithm> // replace
 
 namespace nOT {
 
@@ -35,7 +54,7 @@ class myexception : public std::runtime_error {
 };
 
 /// @macro Use this macro INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1 as a shortcut for various using std::string etc.
-INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1; // <=== namespaces
+INJECT_OT_COMMON_USING_NAMESPACE_COMMON_1 // <=== namespaces
 
 // ======================================================================================
 /// text trimming functions (they do mutate the passes string); they trim based on std::isspace. also return it's reference again
@@ -59,48 +78,103 @@ std::string ToStr(const T & obj) {
 struct cNullstream : std::ostream {
 	cNullstream() : std::ios(0), std::ostream(0) {}
 };
-extern cNullstream g_nullstream; // a stream that does nothing (eats/discards data)
+
+class cLoggerStreamEmpty;
+
+extern cLoggerStreamEmpty g_nullstream; // a stream that does nothing (eats/discards data)
 // ========== debug ==========
 // _dbg_ignore is moved to global namespace (on purpose)
 
 // TODO make _dbg_ignore thread-safe everywhere
 
-extern std::mutex gLoggerGuard;
+extern std::recursive_mutex gLoggerGuard; // the mutex guarding logging/debugging code e.g. protecting streams, files, etc
 
+std::atomic<int> & gLoggerGuardDepth_Get(); // getter for the global singleton of counter (it guarantees initializing it to 0). This counter shows the current recursion (re-entrant) level of debug macros.
 
+// TODO more debug of the debug system:
+// detect lock() error e.g. recursive limit
+// detect stream e.g. operator<< error
 
-#define _debug_level_c(CHANNEL,LEVEL,VAR) do { if (_dbg_ignore< LEVEL) { \
-	nOT::nUtils::gLoggerGuard.try_lock(); \
-	gCurrentLogger.write_stream(LEVEL,CHANNEL) << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline() << std::flush; \
-	nOT::nUtils::gLoggerGuard.unlock(); \
+#define _debug_level(LEVEL,VAR) do { if (_dbg_ignore< LEVEL) { \
+	_dbg_dbg("WRITE DEBUG: LEVEL="<<LEVEL<<" VAR: " << VAR ); \
+	auto level=LEVEL; short int part=0; \
+	try { \
+		std::lock_guard<std::recursive_mutex> mutex_guard( nOT::nUtils::gLoggerGuard ); \
+		part=1; \
+		try { \
+			++nOT::nUtils::gLoggerGuardDepth_Get(); \
+			/* int counter = nOT::nUtils::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
+			gCurrentLogger.write_stream(LEVEL,"") << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline()  << nOT::nUtils::cLoggerCommit() ; \
+			part=9; \
+		} catch(...) { \
+			gCurrentLogger.write_stream(std::max(level,90),"") << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
+			--nOT::nUtils::gLoggerGuardDepth_Get(); throw ; \
+		} \
+		--nOT::nUtils::gLoggerGuardDepth_Get(); \
+	} catch(...) { if (part<8) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: problem in debug mechanism e.g. in locking." <<gCurrentLogger.endline();   throw ; } \
 	} } while(0)
 
-#define _debug_level(LEVEL,VAR) _debug_level_c("",LEVEL,VAR)
+// info for code below: oss object is normal stack variable, using it does not need lock protection
+#define _debug_level_c(CHANNEL,LEVEL,VAR) do { if (_dbg_ignore< LEVEL) { \
+	_dbg_dbg("WRITE DEBUG: LEVEL="<<LEVEL<<" CHANNEL="<<CHANNEL<<" VAR: " << VAR ); \
+	auto level=LEVEL; short int part=0; \
+	try { \
+		std::lock_guard<std::recursive_mutex> mutex_guard( nOT::nUtils::gLoggerGuard ); \
+		part=1; \
+		try { \
+			++nOT::nUtils::gLoggerGuardDepth_Get(); \
+			std::ostringstream oss; \
+			oss << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << VAR << gCurrentLogger.endline() << std::flush; \
+			std::string as_string = oss.str(); \
+			_dbg_dbg("START will write to log LEVEL="<<LEVEL<<" to CHANNEL="<<CHANNEL<<" as_string="<<as_string); \
+/* int counter = nOT::nUtils::gLoggerGuardDepth_Get();  if (counter!=1) gCurrentLogger.write_stream(100,"")<<"DEBUG-ERROR: recursion, counter="<<counter<<gCurrentLogger.endline(); */ \
+			gCurrentLogger.write_stream(LEVEL,""     ) << as_string << gCurrentLogger.endline() << nOT::nUtils::cLoggerCommit() ; \
+			gCurrentLogger.write_stream(LEVEL,CHANNEL) << as_string << gCurrentLogger.endline() << nOT::nUtils::cLoggerCommit() ; \
+			_dbg_dbg("DONE will write to log LEVEL="<<LEVEL<<" to CHANNEL="<<CHANNEL<<" as_string="<<as_string); \
+			part=9; \
+		} catch(...) { \
+			gCurrentLogger.write_stream(std::max(level,90),CHANNEL) << nOT::nUtils::get_current_time() << ' ' << OT_CODE_STAMP << ' ' << "(ERROR IN DEBUG)" << gCurrentLogger.endline(); \
+			--nOT::nUtils::gLoggerGuardDepth_Get(); throw ; \
+		} \
+		--nOT::nUtils::gLoggerGuardDepth_Get(); \
+	} catch(...) { if (part<8) gCurrentLogger.write_stream(100,CHANNEL)<<"DEBUG-ERROR: problem in debug mechanism e.g. in locking." <<gCurrentLogger.endline();   throw ; } \
+	} } while(0)
 
-#define _dbg3(VAR) _debug_level( 20,VAR)
-#define _dbg2(VAR) _debug_level( 30,VAR)
-#define _dbg1(VAR) _debug_level( 40,VAR) // details
-#define _info(VAR) _debug_level( 50,VAR) // more boring info
-#define _note(VAR) _debug_level( 70,VAR) // info
-#define _fact(VAR) _debug_level( 75,VAR) // interesting event
-#define _mark(VAR) _debug_level( 80,VAR) // marked action
-#define _warn(VAR) _debug_level( 90,VAR) // some problem
-#define _erro(VAR) _debug_level(100,VAR) // error - report
+// Numerical values of the debug levels - are defined here as const ints. Full name (with namespace) given for clarity.
+extern const int _debug_level_nr_dbg3;
+extern const int _debug_level_nr_dbg2;
+extern const int _debug_level_nr_dbg1;
+extern const int _debug_level_nr_info;
+extern const int _debug_level_nr_note;
+extern const int _debug_level_nr_fact;
+extern const int _debug_level_nr_mark;
+extern const int _debug_level_nr_warn;
+extern const int _debug_level_nr_erro;
 
-#define _dbg3_c(C,VAR) _debug_level_c(C, 20,VAR)
-#define _dbg2_c(C,VAR) _debug_level_c(C, 30,VAR)
-#define _dbg1_c(C,VAR) _debug_level_c(C, 40,VAR) // details
-#define _info_c(C,VAR) _debug_level_c(C, 50,VAR) // more boring info
-#define _note_c(C,VAR) _debug_level_c(C, 70,VAR) // info
-#define _fact_c(C,VAR) _debug_level_c(C, 75,VAR) // interesting event
-#define _mark_c(C,VAR) _debug_level_c(C, 80,VAR) // marked action
-#define _warn_c(C,VAR) _debug_level_c(C, 90,VAR) // some problem
-#define _erro_c(C,VAR) _debug_level_c(C,100,VAR) // error - report
+#define _dbg3(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg3,VAR) // details - most detailed
+#define _dbg2(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg2,VAR) // details - a bit more important
+#define _dbg1(VAR) _debug_level( nOT::nUtils::_debug_level_nr_dbg1,VAR) // details - more important
+#define _info(VAR) _debug_level( nOT::nUtils::_debug_level_nr_info,VAR) // information
+#define _note(VAR) _debug_level( nOT::nUtils::_debug_level_nr_note,VAR) // more interesting information
+#define _fact(VAR) _debug_level( nOT::nUtils::_debug_level_nr_fact,VAR) // interesting events that could be interesting even for user, for logical/business things
+#define _mark(VAR) _debug_level( nOT::nUtils::_debug_level_nr_mark,VAR) // marked actions
+#define _warn(VAR) _debug_level( nOT::nUtils::_debug_level_nr_warn,VAR) // some problems
+#define _erro(VAR) _debug_level( nOT::nUtils::_debug_level_nr_erro,VAR) // errors
 
-// lock // because od VAR
+#define _dbg3_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg3, VAR) // details - most detailed
+#define _dbg2_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg2, VAR) // details - a bit more important
+#define _dbg1_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_dbg1, VAR) // details - more important
+#define _info_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_info, VAR) // information
+#define _note_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_note, VAR) // more interesting information
+#define _fact_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_fact, VAR) // interesting events that could be interesting even for user, for logical/business things
+#define _mark_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_mark, VAR) // marked actions
+#define _warn_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_warn, VAR) // some problems
+#define _erro_c(C,VAR) _debug_level_c(C, nOT::nUtils::_debug_level_nr_erro, VAR) // errors
+
+// lock // because of VAR
 #define _scope_debug_level_c(CHANNEL,LEVEL,VAR) \
 	std::ostringstream debug_detail_oss; \
-	nOT::nUtils::gLoggerGuard.try_lock(); \
+	nOT::nUtils::gLoggerGuard.lock(); \
 	debug_detail_oss << OT_CODE_STAMP << ' ' << VAR ; \
 	nOT::nUtils::nDetail::cDebugScopeGuard debugScopeGuard; \
 	if (_dbg_ignore<LEVEL) debugScopeGuard.Assign(CHANNEL,LEVEL, debug_detail_oss.str()); \
@@ -108,15 +182,15 @@ extern std::mutex gLoggerGuard;
 	nOT::nUtils::gLoggerGuard.unlock();
 #define _scope_debug_level(LEVEL,VAR) _scope_debug_level_c("",LEVEL,VAR)
 
-#define _scope_dbg1(VAR) _scope_debug_level( 20,VAR)
-#define _scope_dbg2(VAR) _scope_debug_level( 30,VAR)
-#define _scope_dbg3(VAR) _scope_debug_level( 40,VAR) // details
-#define _scope_info(VAR) _scope_debug_level( 50,VAR) // more boring info
-#define _scope_note(VAR) _scope_debug_level( 70,VAR) // info
-#define _scope_fact(VAR) _scope_debug_level( 75,VAR) // interesting event
-#define _scope_mark(VAR) _scope_debug_level( 80,VAR) // marked action
-#define _scope_warn(VAR) _scope_debug_level( 90,VAR) // some problem
-#define _scope_erro(VAR) _scope_debug_level( 100,VAR) // error - report
+#define _scope_dbg1(VAR) _scope_debug_level( _debug_level_nr_dbg3, VAR)
+#define _scope_dbg2(VAR) _scope_debug_level( _debug_level_nr_dbg2, VAR)
+#define _scope_dbg3(VAR) _scope_debug_level( _debug_level_nr_dbg1, VAR) 
+#define _scope_info(VAR) _scope_debug_level( _debug_level_nr_info, VAR) 
+#define _scope_note(VAR) _scope_debug_level( _debug_level_nr_note, VAR) 
+#define _scope_fact(VAR) _scope_debug_level( _debug_level_nr_fact, VAR) 
+#define _scope_mark(VAR) _scope_debug_level( _debug_level_nr_mark, VAR) 
+#define _scope_warn(VAR) _scope_debug_level( _debug_level_nr_warn, VAR) 
+#define _scope_erro(VAR) _scope_debug_level( _debug_level_nr_erro, VAR) 
 
 /***
 @brief do not use this namespace directly, it is implementation detail.
@@ -140,20 +214,23 @@ class cDebugScopeGuard {
 
 const char* DbgShortenCodeFileName(const char *s); ///< Returns a pointer to some part of the string that was given, skipping directory names, for log/debug
 
-}; // namespace nDetail
+} // namespace nDetail
 
 // ========== logger ==========
+
+class cLoggerStream;
 
 /*** 
 @brief Class to write debug into. Used it by calling the debug macros _dbg1(...) _info(...) _erro(...) etc, NOT directly!
 @author rfree (maintainer) 
+@thread this class is NOT thread safe and must used only by one thread at once (use it via ot_debug_macros like _info macro they do proper locking)
 */
 class cLogger {
 	public:
 		cLogger();
 		~cLogger();
-		std::ostream & write_stream(int level); ///< starts a new message on given level (e.g. writes out the icon/tag) and returns stream to output to
-		std::ostream & write_stream(int level, const std::string & channel); ///< the same but with name of the debug channel
+		cLoggerStream & write_stream(int level); ///< starts a new message on given level (e.g. writes out the icon/tag) and returns stream to output to
+		cLoggerStream & write_stream(int level, const std::string & channel); ///< the same but with name of the debug channel
 
 		void setOutStreamFromGlobalOptions(); // set debug level, file etc - according to global Options
 		void setOutStreamFile(const std::string &fname); // switch to using this file
@@ -163,20 +240,35 @@ class cLogger {
 		std::string endline() const; ///< returns string to be written at end of message
 
 	protected:
-		unique_ptr<std::ofstream> mOutfile;
-		std::ostream * mStream; ///< pointing only! can point to our own mOutfile, or maye to global null stream
+		bool mUseRegularFiles;
+		boost::interprocess::message_queue mMainMsgQueue;
+		
+		typedef long int t_anypid; // a portable representation of PID. long int should cover all platforms
 
-		std::map< std::string , std::ofstream * > mChannels; // the ofstream objects are owned by this class
+		void SetStreamBroken(); ///< call in case of internal error in logger (e.g. can not open a file)
+		void SetStreamBroken(const std::string &msg); ///< same but with error message
+
+		unique_ptr<cLoggerStream> mOutfile;
+		cLoggerStream * mStream; ///< pointing only! can point to our own mOutfile, or maye to global null stream
+		cLoggerStream * mStreamBrokenDebug; ///< pointing only! this is a pointer to some stream that should be used when normal debugging is broken eg std::cerr
+		bool mIsBroken; ///< is the debugging system broken (this should be set when internal problems occur and should cause fallback to std::cerr)
+
+		std::map< std::string , cLoggerStream * > mChannels; // the ofstream objects are owned by this class
 
 		int mLevel; ///< current debug level
 
-		std::ostream & SelectOutput(int level, const std::string & channel);
-		void OpenNewChannel(const std::string & channel);
+		cLoggerStream & SelectOutput(int level, const std::string & channel) noexcept; ///< returns a proper stream for this level and channel (always usable string)
+		void OpenNewChannel(const std::string & channel) noexcept; ///< tries to prepare this channel. does NOT guarantee to created mChannels[] entry!
+		void OpenNewChannel_(const std::string & channel);  ///< internal function, will throw in case of problems
 		std::string GetLogBaseDir() const;
 
-		std::map< std::thread::id , int > mThread2Number; // change long thread IDs into a short nice number to show
-		int mThread2Number_Biggest; // current biggest value held there (biggest key) - works as growing-only counter basically
-		int Thread2Number(const std::thread::id id); // convert the system's thread id into a nice short our id; make one if new thread
+		std::map< std::thread::id , int > mThread2Number; ///<  change long thread IDs into a short nice number to show
+		int mThread2Number_Biggest; ///<  current biggest value held there (biggest key) - works as growing-only counter basically
+		int Thread2Number(const std::thread::id id); ///<  convert the system's thread id into a nice short our id; make one if new thread
+
+		std::map< t_anypid , int > mPid2Number; ///<  change long proces PID into a short nice number to show
+		int mPid2Number_Biggest; ///<  current biggest value held there (biggest key) - works as growing-only counter basically
+		int Pid2Number(const t_anypid id); ///<  convert the system's PID id into a nice short our id; make one if new thread
 };
 
 
@@ -322,7 +414,10 @@ eSubjectType String2SubjectType(const string & type);
 class cFilesystemUtils { // if we do not want to use boost in given project (or we could optionally write boost here later)
 	public:
 		static bool CreateDirTree(const std::string & dir, bool only_below=false);
-		static char GetDirSeparator(); // eg '/' or '\'
+		static char GetDirSeparatorSys(); /// < eg '/' or '\'
+		static char GetDirSeparatorInter(); /// < internal is '/'
+		static string FileInternalToSystem(const std::string &name); ///< converts from internal file name string to system file name string
+		static string FileSystemToInternal(const std::string &name); ///< converts from system file name string to internal file name string
 };
 
 
@@ -344,6 +439,93 @@ void hintingToTxt(std::fstream & file, string command, vector<string> &commands)
 void generateQuestions (std::fstream & file, string command);
 void generateAnswers (std::fstream & file, string command, vector<string> &completions);
 
+// ====================================================================
+
+
+namespace nDetail {
+	struct channel_use_info;
+} // namespace nDetail
+
+
+struct cLoggerCommit { 
+	cLoggerCommit() = default;
+	cLoggerCommit(const cLoggerCommit &) = default;
+	};
+
+/*
+std::ostream & operator<<(std::ostream &str , const cLoggerCommit & obj) {
+// TODO 
+	return str;
+}
+*/
+class cLoggerStream {
+	protected:
+		std::unique_ptr<std::ostringstream> m_oss;
+		bool m_use_regular_files;
+		std::string m_filename = "tmp_log";
+		std::unique_ptr<boost::interprocess::message_queue> m_msg_queue;
+		std::unique_ptr<std::ofstream> m_out_file;
+		const unsigned int m_max_queue_size = 1000;
+		const unsigned int m_max_message_size = 1000;
+	public:
+		cLoggerStream(const std::string & filename);
+		virtual ~cLoggerStream() = default;
+		
+		virtual bool PrintIsNotEmpty();
+		virtual void Print(const std::string & str);
+		
+		template <class T> 
+		cLoggerStream& operator << ( const T & obj) { 
+			m_oss.reset(new std::ostringstream);
+			if (PrintIsNotEmpty()) {
+				*m_oss << obj;
+				string s = m_oss->str();
+				Print(s);
+			}
+			else {
+				std::cout << obj;
+			}
+				m_oss.reset(nullptr);
+				return *this;
+		}
+		
+		virtual cLoggerStream& operator << ( const cLoggerCommit & obj);
+		
+		virtual void UseRegularFiles();
+	protected:
+		cLoggerStream() = default;
+};
+
+class cLoggerStreamEmpty : public cLoggerStream {
+	
+	public :
+		cLoggerStreamEmpty() = default;
+		template <class T> cLoggerStream& operator << ( const T & obj) {
+			return *this;
+		}
+		
+		template <class T> cLoggerStream& operator << ( const cLoggerCommit & obj) { 
+			return *this;
+		}
+};
+
+class cLoggerStreamCout : public cLoggerStream {
+	public:
+		cLoggerStreamCout() = default;
+		template <class T> cLoggerStream& operator << ( const T & obj) {
+			std::cout << obj;
+			return *this;
+		}
+};
+
+class cLoggerStreamCerr : public cLoggerStream {
+	public:
+		cLoggerStreamCerr() = default;
+		template <class T> cLoggerStream& operator << ( const T & obj) {
+			std::cerr << obj;
+			return *this;
+		}
+};
 // ====================================================================
 
 namespace nOper { // nOT::nUtils::nOper
@@ -423,9 +605,9 @@ class value_init {
 template <class T, T INIT>
 value_init<T, INIT>::value_init() :	data(INIT) { }
 
-}; // namespace nUtils
+} // namespace nUtils
 
-}; // namespace nOT
+} // namespace nOT
 
 
 // global namespace
