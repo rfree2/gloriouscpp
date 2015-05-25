@@ -3,7 +3,7 @@
 (That includes other files here e.g. util programs/scripts, examples, media)
 
 
-Copyright (c) 2013,2014 The Glorious contributors
+Copyright (c) 2013,2014 The Glorious contributors (The BSD 3-Clause License)
 
 All rights reserved.
 
@@ -19,5 +19,4 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 * Parts of code are developed thanks to opentxs-cli developers, as Public Domain (OpenTransactions, OTShell)
 * Parts of code are developed thanks to Monero project, as BSD-like license
-
 
