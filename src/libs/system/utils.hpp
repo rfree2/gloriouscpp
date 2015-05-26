@@ -4,9 +4,11 @@
 
 /* See other files here for the LICENCE that applies here. */
 
+#pragma once
+#ifndef INCLUDE_GLORIOUS_SYSTEM_UTILS
+#define INCLUDE_GLORIOUS_SYSTEM_UTILS
+
 #include "ccolor.hpp"
-#ifndef INCLUDE_OT_NEWCLI_UTILS
-#define INCLUDE_OT_NEWCLI_UTILS
 
 #include "lib_common1.hpp"
 #ifdef __unix
