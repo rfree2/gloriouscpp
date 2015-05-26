@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (glor_system CXX)
 
+include("../lib_options.cmake")
 
 file(GLOB glor_system_sources # All files in directory:
 	"*.h"
