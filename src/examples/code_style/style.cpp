@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 
-#include <glor/system/utils.cpp>
+#include <glor/system/utils.hpp>
 
 using namespace glor::system;
 
@@ -75,3 +75,6 @@ void test() {
 } // namespace
 
 
+int main() {
+	return 0;
+}
