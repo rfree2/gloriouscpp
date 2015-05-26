@@ -6,7 +6,7 @@
 #ifndef INCLUDE_GLORIOUS_IPC
 #define INCLUDE_GLORIOUS_IPC
 
-#include "utils.hpp"
+#include <glor/system/utils.hpp>
 
 namespace glor {
 namespace skel {
