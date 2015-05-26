@@ -1,8 +1,11 @@
 #cmake -DCMAKE_BUILD_TYPE=Release .
 #cmake -DCMAKE_BUILD_TYPE=Debug .
+#windows
+#cmake -G "MSYS Makefiles" .
 cmake_minimum_required(VERSION 2.6)
 project (GLORIUS_CPP)
 
+set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.45.0 COMPONENTS REQUIRED system)
 if(NOT Boost_FOUND)
   message (WARNING "Could not find Boost libraries, please make sure you have installed Boost, libboost-all-dev or the equivalent")
