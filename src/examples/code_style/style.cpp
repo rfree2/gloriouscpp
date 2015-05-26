@@ -1,8 +1,11 @@
 #include <string>
 #include <iostream>
 
-namespace glor {
+#include <glor/system/utils.cpp>
 
+using namespace glor::system;
+
+namespace glor {
 
 namespace example {
 
@@ -53,7 +56,17 @@ c_man::c_man(const string& name, int age, int money, int luck) :
 	if (m_beer > 100) m_money -= 100;
 }
 
+
+void c_man::foo() { }
+
+void c_man::bar(int x, int y) { 
+	int x_new = x;
+	int c = x_new + y;
+	_info("c = " << c);
+}
+
 void test() {
+	_mark("Running the test.");
 	c_man bob("Bob"), dave("Dave");
 	c_man the_other_guy("James");
 }
