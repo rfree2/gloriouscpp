@@ -1,11 +1,15 @@
-
-
-
 INSTALL
+boost
+libpthread-workqueue-dev
+libpthread-workqueue0
 
+BUILD
 
-LINUX:
+LINUX
+cmake .
+make
 
-
-
-
+WINDOWS
+install msys2
+cmake -G "MSYS Makefiles" .
+make
