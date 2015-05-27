@@ -5,9 +5,11 @@
 cmake_minimum_required(VERSION 2.6)
 project (GLORIUS_CPP)
 
-set(Boost_USE_STATIC_LIBS ON)
+if (WIN32)
+	set(Boost_USE_STATIC_LIBS ON)
+endif()
 find_package(Boost 1.45.0 COMPONENTS REQUIRED system)
-if(NOT Boost_FOUND)
+if (NOT Boost_FOUND)
   message (WARNING "Could not find Boost libraries, please make sure you have installed Boost, libboost-all-dev or the equivalent")
 endif()
 

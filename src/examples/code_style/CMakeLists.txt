@@ -5,4 +5,6 @@ add_dependencies(code_style
 	glor_system)
 
 target_link_libraries (code_style
-	glor_system)
+	glor_system
+	${Boost_SYSTEM_LIBRARY}
+	pthread)
