@@ -16,8 +16,7 @@
 #include <unistd.h>
 #include <pwd.h>
 
-#include "msg_mutex.hpp"
-#include "libprocctrl.hpp"
+#include <glor/ipc/msg_mutex.hpp>
 
 #define _info(X) do { std::cerr<<getpid()<<"/"<<(std::this_thread::get_id())<<" "<<X<<std::endl; } while(0)
 

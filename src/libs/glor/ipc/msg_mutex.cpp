@@ -1,10 +1,11 @@
-#include "msg_mutex.hpp"
-#include "libsimpleconvert.hpp"
 
 #include <thread>
 
+#include <glor/ipc/msg_mutex.hpp>
+#include <glor/system/libsimpleconvert.hpp>
+
 #ifndef _internal_dbg
-	#define _internl_dbg(X) do { std::cerr<<" "<<__FILE__<<getpid()<<"/"<<(std::this_thread::get_id())<<" "<<X<<std::endl; } while(0)
+	#define _internal_dbg(X) do { std::cerr<<" "<<__FILE__<<getpid()<<"/"<<(std::this_thread::get_id())<<" "<<X<<std::endl; } while(0)
 #endif
 
 msg_mutex::msg_mutex(const char * name, size_t msglen)

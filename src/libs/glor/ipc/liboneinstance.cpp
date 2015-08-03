@@ -17,9 +17,8 @@
 #include <unistd.h>
 #include <pwd.h>
 
-#include "liboneinstance.hpp"
-#include "libsimpleconvert.hpp"
-
+#include <glor/ipc/liboneinstance.hpp>
+#include <glor/system/libsimpleconvert.hpp>
 
 // minor version (implementation) - number
 #define nOneInstance_library_version_minor 2

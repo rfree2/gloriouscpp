@@ -3,8 +3,8 @@
 /// @brief ... copy this file, then edit this description ...
 
 #pragma once
-#ifndef INCLUDE_GLORIOUS_IPC
-#define INCLUDE_GLORIOUS_IPC
+#ifndef INCLUDE_GLORIOUS_IPC_IPC
+#define INCLUDE_GLORIOUS_IPC_IPC
 
 #include <glor/system/utils.hpp>
 
