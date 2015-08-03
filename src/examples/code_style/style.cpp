@@ -12,14 +12,10 @@ namespace example {
 using namespace std;
 
 class c_entity { };
-class cEntity { };
-class Entity { };
 
 class c_human : public c_entity { } ;
-class cHuman : public cEntity { } ;
-class Human : public Entity { } ;
 
-int global_now_time;
+int global_now_time; // but better to not use global
 
 class c_man : public c_human {
 	private:
@@ -38,7 +34,11 @@ class c_man : public c_human {
 		void print(string str);
 };
 
-c_man::c_man(const string& name) : m_beer(0), m_name(name) { }
+
+// use shorter (one-line) or longer syntax (with newline, ident, and ending brace in newline)
+// depending on size/complexity of the code
+
+c_man::c_man(const string& name) : m_beer(0), m_name(name) { } // trivial = oneliner
 
 c_man::c_man(const string& name, int age, int money, int luck) : 
 	m_beer( age + money*luck ), 
@@ -52,8 +52,8 @@ c_man::c_man(const string& name, int age, int money, int luck) :
 		bar(age,luck);
 	}
 
-	if (age > 25) { m_money *= 2; }
-	if (m_beer > 100) m_money -= 100;
+	if (age > 25) { m_money *= 2; } // even for simple one-line one-instruction if-then lines, use braces { }
+	if (m_beer > 100) { m_money -= 100; }
 }
 
 
