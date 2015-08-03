@@ -35,4 +35,7 @@ CMakeCache.txt
 CMakeFiles/
 CMakeCache.txt
 
+# from build
+bin/
+
 
